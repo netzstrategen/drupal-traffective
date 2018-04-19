@@ -1,0 +1,184 @@
+<?php
+
+/**
+ * @file
+ * Contains traffective.module.
+ */
+
+use Drupal\traffective\AdSlot;
+use Drupal\Component\Utility\Html;
+
+/**
+ * Implements hook_theme().
+ */
+function traffective_theme(): array {
+  return AdSlot::setTheme();
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function traffective_preprocess_field(&$variables): void {
+  $element = $variables['element'];
+
+  // Inject adslots after each 5th image in a gallery.
+  if ($element['#bundle'] === 'gallery'
+    && $element['#view_mode'] === 'gallery'
+    && $variables['field_type'] === 'entity_reference'
+  ) {
+    foreach ($variables['items'] as $index => $item) {
+      if (($index + 1) % 5) {
+        continue;
+      }
+      array_splice($variables['items'], $index++, 0, [[
+        'content' => AdSlot::render('rectangle'),
+      ]]);
+    }
+  }
+}
+
+/**
+ * Implements a global adslot counter per format.
+ *
+ * Implements hook_preprocess_HOOK().
+ */
+function template_preprocess_traffective_adslot(array &$variables): void {
+  AdSlot::incrementCounter($variables);
+}
+
+/**
+ * Implements hook_library_info_build().
+ *
+ * @todo Create settings page.
+ * @todo Determine zone names.
+ */
+function traffective_library_info_build(): array {
+  $libraries = [];
+  $libraries['traffective'] = [
+    'version' => '1.x',
+    'header' => TRUE,
+    'js' => [
+      '//cdntrf.com/trf_stimme.js' => [
+        'type' => 'external',
+        'minified' => TRUE,
+        'attributes' => [
+          'id' => 'trfAdSetup',
+          'async' => TRUE,
+          'data-traffectiveConf' => json_encode([
+            'targeting' => [
+              'key' => 'zone',
+              'values' => NULL,
+              'value' => 'test',
+            ],
+            'dfpAdUrl' => '/5688434/stimme.de/homepage',
+          ]),
+        ],
+      ],
+    ],
+  ];
+  return $libraries;
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function traffective_page_attachments(array &$attachments): void {
+  $attachments['#attached']['library'][] = 'traffective/traffective';
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter().
+ */
+function traffective_node_view_alter(&$build) {
+  // @todo No ads on premium or "Polizeimeldungen".
+  if (empty($build['field_paragraphs'])) {
+    return;
+  }
+  $paragraph_count = 0;
+  $previous_is_text = FALSE;
+  $previous_offset = FALSE;
+  $entity_type = $build['#node']->getType();
+
+  $ad_slots = [];
+  if ($entity_type === 'article') {
+    $ad_slots['rectangle'][] = new AdSlot('rectangle', 3);
+  }
+  elseif ($entity_type === 'longread') {
+    $ad_slots['parallax'][] = new AdSlot('content', 5);
+  }
+
+  foreach ($build['field_paragraphs'] as $key => $paragraph) {
+    $values = [];
+    if (strpos($key, '#') === 0) {
+      continue;
+    }
+    $entity = $paragraph['#paragraph'];
+    $type = $entity->getType();
+    // Ads should be placed between text content only.
+    if (!in_array($type, ['text', 'statement'], TRUE)) {
+      $previous_is_text = FALSE;
+      continue;
+    }
+    $fields = [
+      'text' => 'field_text',
+      'statement' => 'field_statement_text',
+    ];
+    $field = $entity->get($fields[$type]);
+    $value = $field->getValue();
+    // Parse the paragraph content and get it's subnodes to create separate
+    // paragraphs to be able to inject ad slots in between.
+    $doc = Html::load($value[0]['value']);
+    $selector = new \DOMXPath($doc);
+    $body = $selector->query('.//body/*');
+    // Empty the original paragraph array to avoid duplication.
+    $build['field_paragraphs'][$key] = [];
+    // Iterate over the DOM nodes to split them into separate paragraphs.
+    foreach ($body as $node) {
+      $paragraph_count++;
+      $content = $doc->saveHTML($node);
+      $new_paragraph = $paragraph;
+      // Create a duplicate of the current paragraph entity and set
+      // it's related value field to the current processed DOM node HTML value.
+      $new_entity = $entity->createDuplicate();
+      $field = $new_entity->get($fields[$type]);
+      $field->setValue([
+        'value' => $content,
+        'format' => $value[0]['format'],
+      ]);
+      $new_paragraph['#paragraph'] = $new_entity;
+      // Place ads only, if the previous (and next/current) paragraphs are text content.
+      if ($previous_is_text) {
+        // Rectangle slots.
+        if (!empty($ad_slots['rectangle'])) {
+          $rectangle_ad_slot = array_shift($ad_slots['rectangle']);
+        }
+        if (isset($rectangle_ad_slot)
+          && $paragraph_count >= ($rectangle_ad_slot->getOffset() + $previous_offset)
+          && !$rectangle_ad_slot->getPlaced()
+        ) {
+          $build['field_paragraphs'][$key][] = AdSlot::render('rectangle');
+          $rectangle_ad_slot->setPlaced($paragraph_count);
+          $previous_offset = $paragraph_count;
+          // Inject another ad slot if the previous was rendered to adjust the
+          // amount to the article length.
+          $ad_slots['rectangle'][] = new AdSlot('rectangle', 4);
+        }
+        // Parallax slots.
+        if (!empty($ad_slots['parallax'])) {
+          $parallax_ad_slot = array_shift($ad_slots['parallax']);
+        }
+        if (isset($parallax_ad_slot)
+          && $paragraph_count >= $parallax_ad_slot->getOffset()
+          && !$parallax_ad_slot->getPlaced()
+        ) {
+          $build['field_paragraphs'][$key][] = AdSlot::render('content');
+          $parallax_ad_slot->setPlaced($paragraph_count);
+          $previous_offset = $paragraph_count;
+        }
+      }
+      $build['field_paragraphs'][$key][] = $new_paragraph;
+      $previous_is_text = TRUE;
+    }
+  }
+  return $build;
+}

@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Default theme implementation to display a Traffective ad slot.
+ *
+ * Available variables:
+ * - format: The ad slot format.
+ * - render_count: A global render count per ad format.
+ *
+ * The format gets captialized to match the Traffective naming conventions.
+ */
+#}
+<div id="traffective-ad-{{ format|capitalize }}_{{ render_count }}" style="display: none;" class="{{ format|capitalize }}_{{ render_count }}"></div>

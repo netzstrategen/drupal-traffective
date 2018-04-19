@@ -1,0 +1,5 @@
+services:
+  twig.extension.traffective:
+    class: Drupal\traffective\Traffective
+    tags:
+      - { name: twig.extension }
