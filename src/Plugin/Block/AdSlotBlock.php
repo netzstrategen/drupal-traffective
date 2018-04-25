@@ -40,8 +40,13 @@ class AdSlotBlock extends BlockBase implements BlockPluginInterface {
       '#title' => $this->t('Format'),
       // @todo Register missing options.
       '#options' => [
+        'billboard' => $this->t('Billboard'),
+        'button' => $this->t('Button'),
+        'contentbanner' => $this->t('Contentbanner'),
         'halfpage' => $this->t('Halfpage'),
         'rectangle' => $this->t('Rectangle'),
+        'skyscraper' => $this->t('Skyscraper'),
+        'superbanner' => $this->t('Superbanner'),
       ],
       '#default_value' => $config['traffective_adslot'] ?? '',
     ];

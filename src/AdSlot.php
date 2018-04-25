@@ -63,7 +63,6 @@ class AdSlot {
     $this->offset = $offset;
   }
 
-
   /**
    * Gets the actual placed offset of the ad slot.
    *
@@ -72,7 +71,6 @@ class AdSlot {
   public function getPlaced(): ?int {
     return $this->placed;
   }
-
 
   /**
    * Sets the actual offset of the ad slot.
