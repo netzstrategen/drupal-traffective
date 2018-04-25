@@ -13,6 +13,10 @@ use Twig_SimpleFunction;
 /**
  * Registers a new `traffective_adslot` function to render ad slots from Twig templates.
  *
+ * @code
+ * {{ traffective_adslot('rectangle') }}
+ * @endcode
+ *
  * @see \Drupal\traffective\AdSlot
  *
  * @implements Twig_ExtensionInterface

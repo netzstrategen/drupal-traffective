@@ -83,22 +83,6 @@ class AdSlot {
   }
 
   /**
-   * Registers a new Twig theme for rendering an ad slot.
-   *
-   * @return array
-   */
-  public static function setTheme(): array {
-    return [
-      'traffective_adslot' => [
-        'variables' => [
-          'format' => '',
-          'render_count' => NULL,
-        ],
-      ],
-    ];
-  }
-
-  /**
    * Returns an ad slot render array.
    *
    * @param string $format
@@ -123,6 +107,24 @@ class AdSlot {
     $count = &drupal_static(__FUNCTION__ . '_' . $variables['format'], 1);
     $variables['render_count'] = $count;
     $count++;
+  }
+
+  /**
+   * Registers module theme implementations.
+   *
+   * @implements hook_theme().
+   *
+   * @return array
+   */
+  public static function traffective_theme(): array {
+    return [
+      'traffective_adslot' => [
+        'variables' => [
+          'format' => '',
+          'render_count' => NULL,
+        ],
+      ],
+    ];
   }
 
 }
