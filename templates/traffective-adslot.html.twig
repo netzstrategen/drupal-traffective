@@ -11,6 +11,7 @@
  */
 #}
 <div class="traffective-adslot">
+  {# Extract "nativendo" ads into own Drupal module #}
   {% if format == 'native' %}
     <div id="nativendo-ad-{{ render_count }}"></div>
   {% elseif format in ['skyscraper', 'halfpage'] %}
