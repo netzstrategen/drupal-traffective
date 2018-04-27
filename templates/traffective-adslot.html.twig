@@ -10,11 +10,13 @@
  * The format gets captialized to match the Traffective naming conventions.
  */
 #}
-<div>
+<div class="traffective-adslot">
   {% if format == 'native' %}
     <div id="nativendo-ad-{{ render_count }}"></div>
-  {% elseif format in ['skyscraper', 'billboard'] %}
-    <div id="traffective-ad-{{ format|capitalize }}" style="display: none;" class='{{ format|capitalize }}_OMS'></div>
+  {% elseif format in ['skyscraper', 'halfpage'] %}
+    {% if format in ['skyscraper'] %}
+      <div id="traffective-ad-{{ format|capitalize }}" style="display: none;" class='{{ format|capitalize }}_OMS'></div>
+    {% endif %}
     <div id="traffective-ad-{{ format|capitalize }}" style="display: none;" class="{{ format|capitalize }}"></div>
   {% else %}
     <div id="traffective-ad-{{ format|capitalize }}_{{ render_count }}" style="display: none;" class="{{ format|capitalize }}_{{ render_count }}"></div>
