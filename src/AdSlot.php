@@ -91,22 +91,24 @@ class AdSlot {
    * @return array
    */
   public static function render(string $format): array {
+    $count = static::incrementCounter($format);
     return [
       '#theme' => 'traffective_adslot',
       '#format' => $format,
+      '#render_count' => $count,
     ];
   }
 
   /**
    * Increments a global counter for each ad format to unique div IDs.
    *
-   * @param array $variables
-   *   The ad slot theme variables.
+   * @param string $format
+   *   The ad slot format.
    */
-  public static function incrementCounter(array &$variables): void {
-    $count = &drupal_static(__FUNCTION__ . '_' . $variables['format'], 1);
-    $variables['render_count'] = $count;
+  public static function incrementCounter(string $format): int {
+    $count = &drupal_static(__FUNCTION__ . '_' . $format, 0);
     $count++;
+    return $count;
   }
 
   /**

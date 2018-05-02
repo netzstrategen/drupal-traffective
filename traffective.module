@@ -38,15 +38,6 @@ function traffective_preprocess_field(&$variables): void {
 }
 
 /**
- * Implements a global adslot counter per format.
- *
- * Implements hook_preprocess_HOOK().
- */
-function template_preprocess_traffective_adslot(array &$variables): void {
-  AdSlot::incrementCounter($variables);
-}
-
-/**
  * Implements hook_library_info_build().
  *
  * @todo Create settings page.
