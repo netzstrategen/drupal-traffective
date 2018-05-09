@@ -75,6 +75,25 @@ function traffective_library_info_build(): array {
  */
 function traffective_page_attachments(array &$attachments): void {
   $attachments['#attached']['library'][] = 'traffective/traffective';
+
+  $script = "(function() {";
+  $script .= "var s = document.createElement('script');";
+  $script .= "s.type = 'text/javascript';";
+  $script .= "s.async = true;";
+  $script .= "s.src = '//d.nativendo.de/d/init';";
+  $script .= "var sc = document.getElementsByTagName('script')[0];";
+  $script .= "sc.parentNode.insertBefore(s, sc);";
+  $script .= "})();";
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#value' => $script,
+      '#weight' => 9999,
+    ],
+    'traffective_ad_loading_script',
+  ];
 }
 
 /**
