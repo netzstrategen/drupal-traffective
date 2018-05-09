@@ -10,7 +10,12 @@
  * The format gets captialized to match the Traffective naming conventions.
  */
 #}
-<div class="traffective-adslot">
+{% set classes = [
+  'traffective-adslot',
+  ' ad',
+  ' ad--' ~ format,
+] %}
+<div class="{{ classes|join }}">
   {# Extract "nativendo" ads into own Drupal module #}
   {% if format == 'native' %}
     <div id="nativendo-ad-{{ render_count }}"></div>
