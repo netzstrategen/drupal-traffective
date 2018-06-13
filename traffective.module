@@ -155,7 +155,9 @@ function traffective_node_view_alter(&$build) {
     $build['field_paragraphs'][$key] = [];
     // Iterate over the DOM nodes to split them into separate paragraphs.
     foreach ($body as $node) {
-      $paragraph_count++;
+      if (!traffective_skip_node($node)) {
+        $paragraph_count++;
+      }
       $content = $doc->saveHTML($node);
       $new_paragraph = $paragraph;
       // Create a duplicate of the current paragraph entity and set
@@ -198,10 +200,17 @@ function traffective_node_view_alter(&$build) {
         }
       }
       $build['field_paragraphs'][$key][] = $new_paragraph;
-      // Do not consider empty paragraphs for placement calculation.
-      // Empty paragraphs seems to contain a UTF-8 &nbsp; which is a two byte char sequence of 194 and 160.
-      $previous_is_text = !empty(trim($node->textContent, ' ' . chr(194) . chr(160)));
+      $previous_is_text = TRUE;
     }
   }
   return $build;
+}
+
+/**
+ * Do not consider empty paragraphs for placement calculation.
+ * Empty paragraphs seems to contain a UTF-8 &nbsp; which is a two byte char sequence of 194 and 160.
+ */
+function traffective_skip_node($node) {
+  $word_count = count(explode(' ', $node->textContent));
+  return $word_count <= 20 || empty(trim($node->textContent, ' ' . chr(194) . chr(160)));
 }
