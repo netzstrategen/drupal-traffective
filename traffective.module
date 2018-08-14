@@ -49,7 +49,7 @@ function traffective_library_info_build(): array {
     'version' => '1.x',
     'header' => TRUE,
     'js' => [
-      '//cdntrf.com/trf_stimme.js' => [
+      'https://cdntrf.com/trf_stimme.js' => [
         'type' => 'external',
         'minified' => TRUE,
         'attributes' => [
