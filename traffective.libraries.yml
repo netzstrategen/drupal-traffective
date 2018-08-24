@@ -1,0 +1,5 @@
+teads:
+  version: 1.x
+  js:
+    https://a.teads.tv/page/64792/tag: { type: external, attributes: { async: true } }
+    https://a.teads.tv/page/64793/tag: { type: external, attributes: { async: true } }

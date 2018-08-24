@@ -7,6 +7,7 @@
 
 use Drupal\traffective\AdSlot;
 use Drupal\Component\Utility\Html;
+use Drupal\taxonomy\Entity\Term;
 
 /**
  * Implements hook_theme().
@@ -27,11 +28,11 @@ function traffective_preprocess_field(&$variables): void {
     && $variables['field_type'] === 'entity_reference'
   ) {
     foreach ($variables['items'] as $index => $item) {
-      if (($index + 1) % 5) {
+      if (($index + 1) % 6) {
         continue;
       }
-      array_splice($variables['items'], $index++, 0, [[
-        'content' => AdSlot::render('contentbanner'),
+      array_splice($variables['items'], $index, 0, [[
+        'content' => [AdSlot::render('superbanner_fotogalerie'),  AdSlot::render('rectangle_fotogalerie')],
       ]]);
     }
   }
@@ -70,6 +71,27 @@ function traffective_library_info_build(): array {
   return $libraries;
 }
 
+function traffective_preprocess_node(&$variables) {
+  // Limit Teads Ads to the Economy category, articles, longreads and premium.
+  if (isset($variables['node'])
+    && $variables['node']->hasField('field_channel')
+    && $variables['view_mode'] === 'full'
+  ) {
+    $node = $variables['node'];
+    $channels = $node->get('field_channel')->getValue();
+    $is_economy = FALSE;
+    foreach ($channels as $channel) {
+      $term = Term::load($channel['target_id']);
+      if ($term->getName() === 'Wirtschaft') {
+        $is_economy = True;
+      }
+    }
+    if ($is_economy && in_array($node->getType(), ['article', 'longread'], TRUE)) {
+      $variables['#attached']['library'][] = 'traffective/teads';
+    }
+  }
+}
+
 /**
  * Implements hook_page_attachments().
  */
@@ -77,10 +99,13 @@ function traffective_page_attachments(array &$attachments): void {
   $attachments['#attached']['library'][] = 'traffective/traffective';
 
   $script = "(function() {";
+  $script .= "var native_site = typeof oms_site !== 'undefined' ? oms_site : rmsi_site,";
+  $script .= "native_zone = typeof oms_zone !== 'undefined' ? oms_zone : rmsi_zone;";
   $script .= "var s = document.createElement('script');";
   $script .= "s.type = 'text/javascript';";
   $script .= "s.async = true;";
-  $script .= "s.src = '//d.nativendo.de/d/init';";
+  $script .= "s.src = document.location.protocol + '//cdn-t.omsnative.de/nativendo.js?c=' +";
+  $script .= "native_zone + '&w=' + native_site;";
   $script .= "var sc = document.getElementsByTagName('script')[0];";
   $script .= "sc.parentNode.insertBefore(s, sc);";
   $script .= "})();";
@@ -115,11 +140,16 @@ function traffective_node_view_alter(&$build) {
   $entity_type = $build['#node']->getType();
 
   $ad_slots = [];
+  // Counting the ad slot positions does include the teaser text.
+  // As this is a separate field, we not taking this into account for our counters.
   if ($entity_type === 'article' && !$is_premium) {
+    // The first rectangle should be placed after the 3rd paragraph, after every 4th afterwards.
+    // Since rectangles use `float: right`, we need to count one ahead.
     $ad_slots['rectangle'][] = new AdSlot('rectangle', 3);
   }
-  elseif ($entity_type === 'longread' && $is_premium) {
-    $ad_slots['parallax'][] = new AdSlot('content', 5);
+  elseif ($entity_type === 'longread') {
+    // Place content ad after the 3rd paragraph, after every 7th afterwards.
+    $ad_slots['parallax'][] = new AdSlot('content', 3);
   }
   // As array_splice expects a numeric index, use a dedicated array index counter.
   $i = 0;
@@ -160,6 +190,8 @@ function traffective_node_view_alter(&$build) {
     $build['field_paragraphs'][$key] = [];
     // Iterate over the DOM nodes to split them into separate paragraphs.
     foreach ($body as $node) {
+      // Ads should be enclosed by text. This may lead to unexpected results as we
+      // skip short and non text paragraphs for counting.
       if (!traffective_skip_node($node)) {
         $paragraph_count++;
       }
@@ -189,23 +221,24 @@ function traffective_node_view_alter(&$build) {
           $previous_offset = $paragraph_count;
           // Inject another ad slot if the previous was rendered to adjust the
           // amount to the article length.
-          $ad_slots['rectangle'][] = new AdSlot('rectangle', 4);
+          $ad_slots['rectangle'][] = new AdSlot('rectangle', 5);
         }
         // Parallax slots.
         if (!empty($ad_slots['parallax'])) {
           $parallax_ad_slot = array_shift($ad_slots['parallax']);
         }
         if (isset($parallax_ad_slot)
-          && $paragraph_count >= $parallax_ad_slot->getOffset()
+          && $paragraph_count >= ($parallax_ad_slot->getOffset() + $previous_offset)
           && !$parallax_ad_slot->getPlaced()
         ) {
           $build['field_paragraphs'][$key][] = AdSlot::render('content');
           $parallax_ad_slot->setPlaced($paragraph_count);
           $previous_offset = $paragraph_count;
+          $ad_slots['parallax'][] = new AdSlot('content', 7);
         }
       }
       $build['field_paragraphs'][$key][] = $new_paragraph;
-      $previous_is_text = TRUE;
+      $previous_is_text = !traffective_skip_node($node);
     }
   }
   return $build;
@@ -218,4 +251,42 @@ function traffective_node_view_alter(&$build) {
 function traffective_skip_node($node) {
   $word_count = count(explode(' ', $node->textContent));
   return $word_count <= 20 || empty(trim($node->textContent, ' ' . chr(194) . chr(160)));
+}
+
+function traffective_form_alter(&$form, $formstate, $form_id) {
+  $form['traffective']['ad_unit'] = [
+    '#type' => 'select',
+    '#title' => t('Ad Unit'),
+    '#description' => '',
+    '#options' => [
+      'automotive',
+      'business',
+      'cinema',
+      'computer',
+      'entertainment',
+      'event',
+      'family',
+      'football',
+      'health',
+      'jobs',
+      'homepage',
+      'jobs',
+      'localnews',
+      'localnews_no_oms',
+      'nationalnews',
+      'politik',
+      'property',
+      'science',
+      'service',
+      'sports',
+      'stellenmarkt',
+      'test',
+      'test_lokal',
+      'trauer',
+      'travel',
+      'weather',
+    ],
+    '#default_value' => '',
+  ];
+  // $form['#submit'][] = 'traffective_form_submit';
 }
