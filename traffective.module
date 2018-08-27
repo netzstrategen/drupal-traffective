@@ -82,7 +82,7 @@ function traffective_preprocess_node(&$variables) {
     $is_economy = FALSE;
     foreach ($channels as $channel) {
       $term = Term::load($channel['target_id']);
-      if ($term->getName() === 'Wirtschaft') {
+      if ($term && $term->getName() === 'Wirtschaft') {
         $is_economy = True;
       }
     }
