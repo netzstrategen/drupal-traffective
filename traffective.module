@@ -254,6 +254,7 @@ function traffective_skip_node($node) {
 }
 
 function traffective_form_alter(&$form, $formstate, $form_id) {
+  return;
   $form['traffective']['ad_unit'] = [
     '#type' => 'select',
     '#title' => t('Ad Unit'),
