@@ -32,7 +32,7 @@ function traffective_preprocess_field(&$variables): void {
         continue;
       }
       array_splice($variables['items'], $index, 0, [[
-        'content' => [AdSlot::render('superbanner_fotogalerie'),  AdSlot::render('rectangle_fotogalerie')],
+        'content' => [AdSlot::render('superbanner_fotogalerie'), AdSlot::render('rectangle_fotogalerie')],
       ]]);
     }
   }
@@ -71,6 +71,9 @@ function traffective_library_info_build(): array {
   return $libraries;
 }
 
+/**
+ * Implements hook_preporcess_node().
+ */
 function traffective_preprocess_node(&$variables) {
   // Limit Teads Ads to the Economy category, articles, longreads and premium.
   if (isset($variables['node'])
@@ -83,7 +86,7 @@ function traffective_preprocess_node(&$variables) {
     foreach ($channels as $channel) {
       $term = Term::load($channel['target_id']);
       if ($term && $term->getName() === 'Wirtschaft') {
-        $is_economy = True;
+        $is_economy = TRUE;
       }
     }
     if ($is_economy && in_array($node->getType(), ['article', 'longread'], TRUE)) {
@@ -141,17 +144,18 @@ function traffective_node_view_alter(&$build) {
 
   $ad_slots = [];
   // Counting the ad slot positions does include the teaser text.
-  // As this is a separate field, we not taking this into account for our counters.
+  // As this is a separate field, we ignore it for our counters.
   if ($entity_type === 'article' && !$is_premium) {
-    // The first rectangle should be placed after the 3rd paragraph, after every 4th afterwards.
-    // Since rectangles use `float: right`, we need to count one ahead.
+    // The first rectangle should be placed after the 3rd paragraph,
+    // after every 4th afterwards. Since rectangles use `float: right`,
+    // we need to count one ahead.
     $ad_slots['rectangle'][] = new AdSlot('rectangle', 3);
   }
   elseif (($entity_type === 'longread' || $entity_type === 'longread') && $is_premium) {
     // Place content ad after the 3rd paragraph, after every 7th afterwards.
     $ad_slots['parallax'][] = new AdSlot('content', 3);
   }
-  // As array_splice expects a numeric index, use a dedicated array index counter.
+  // Array_splice expects a numeric index, use a dedicated array index counter.
   $i = 0;
   foreach ($build['field_paragraphs'] as $key => $paragraph) {
     $values = [];
@@ -190,8 +194,8 @@ function traffective_node_view_alter(&$build) {
     $build['field_paragraphs'][$key] = [];
     // Iterate over the DOM nodes to split them into separate paragraphs.
     foreach ($body as $node) {
-      // Ads should be enclosed by text. This may lead to unexpected results as we
-      // skip short and non text paragraphs for counting.
+      // Ads should be enclosed by text. This may lead to unexpected
+      // results as we skip short and non text paragraphs for counting.
       if (!traffective_skip_node($node)) {
         $paragraph_count++;
       }
@@ -206,7 +210,7 @@ function traffective_node_view_alter(&$build) {
         'format' => $value[0]['format'],
       ]);
       $new_paragraph['#paragraph'] = $new_entity;
-      // Place ads only, if the previous (and next/current) paragraphs are text content.
+      // Place ads only, if surrounded by text content paragraphs.
       if ($previous_is_text) {
         // Rectangle slots.
         if (!empty($ad_slots['rectangle'])) {
@@ -246,13 +250,18 @@ function traffective_node_view_alter(&$build) {
 
 /**
  * Do not consider empty paragraphs for placement calculation.
- * Empty paragraphs seems to contain a UTF-8 &nbsp; which is a two byte char sequence of 194 and 160.
+ *
+ * Empty paragraphs seems to contain a UTF-8 &nbsp;
+ * which is a two byte char sequence of 194 and 160.
  */
 function traffective_skip_node($node) {
   $word_count = count(explode(' ', $node->textContent));
   return $word_count <= 20 || empty(trim($node->textContent, ' ' . chr(194) . chr(160)));
 }
 
+/**
+ * Implements hook_form_alter().
+ */
 function traffective_form_alter(&$form, $formstate, $form_id) {
   return;
   $form['traffective']['ad_unit'] = [
