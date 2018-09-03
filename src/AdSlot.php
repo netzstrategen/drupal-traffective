@@ -92,6 +92,11 @@ class AdSlot {
    */
   public static function render(string $format): array {
     $count = static::incrementCounter($format);
+    $formats = &drupal_static('traffective_used_formats');
+    if (!isset($formats)) {
+      $formats = [];
+    }
+    $formats[$format] = $format;
     return [
       '#theme' => 'traffective_adslot',
       '#format' => $format,
