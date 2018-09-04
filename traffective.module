@@ -135,6 +135,11 @@ function traffective_node_view_alter(&$build) {
   // @todo No ads on premium or "Polizeimeldungen".
   $node = $build['#node'];
   $is_premium = FALSE;
+  $channel = '';
+
+  if ($node->hasField('field_channel') && $channel = $node->get('field_channel')->getValue()) {
+    $channel = $node->get('field_channel')->first()->get('entity')->getTarget()->getValue()->getName();
+  }
   if ($node->hasField('field_premium')) {
     $is_premium = filter_var($node->get('field_premium')->value, FILTER_VALIDATE_BOOLEAN);
   }
@@ -220,8 +225,10 @@ function traffective_node_view_alter(&$build) {
         if (!empty($ad_slots['rectangle'])) {
           $rectangle_ad_slot = array_shift($ad_slots['rectangle']);
         }
+        $next_placement_count = ($rectangle_ad_slot->getOffset() + $previous_offset);
+        $do_polizei_display = $channel === 'Polizei' && $paragraph_count >= 2 ;
         if (isset($rectangle_ad_slot)
-          && $paragraph_count >= ($rectangle_ad_slot->getOffset() + $previous_offset)
+          && ($paragraph_count >= $next_placement_count || $do_polizei_display)
           && !$rectangle_ad_slot->getPlaced()
         ) {
           $build['field_paragraphs'][$key][] = AdSlot::render('rectangle');
@@ -231,6 +238,7 @@ function traffective_node_view_alter(&$build) {
           // amount to the article length.
           $ad_slots['rectangle'][] = new AdSlot('rectangle', 5);
         }
+
         // Parallax slots.
         if (!empty($ad_slots['parallax'])) {
           $parallax_ad_slot = array_shift($ad_slots['parallax']);
