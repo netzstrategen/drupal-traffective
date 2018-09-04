@@ -23,6 +23,9 @@ class AdSlotBlock extends BlockBase implements BlockPluginInterface {
    */
   public function build(): array {
     $config = $this->getConfiguration();
+    if (in_array('subscriber', \Drupal::currentUser()->getRoles())) {
+      return [];
+    }
     if (!$format = ($config['traffective_adslot'] ?? '')) {
       return [];
     }
