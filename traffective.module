@@ -5,9 +5,12 @@
  * Contains traffective.module.
  */
 
-use Drupal\traffective\AdSlot;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\taxonomy\Entity\Term;
+use Drupal\traffective\AdSlot;
 
 /**
  * Implements hook_theme().
@@ -131,7 +134,16 @@ function traffective_page_attachments(array &$attachments): void {
 /**
  * Implements hook_ENTITY_TYPE_view_alter().
  */
-function traffective_node_view_alter(&$build) {
+function traffective_node_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  // Render a billboard on top of each page (section builder).
+  //
+  // To preserve the global render count add via code as a region block will
+  // render after the main content.
+  if ($build['#node']->getType() === 'page' && $build['#view_mode'] === 'full') {
+    $build['billboard'] = AdSlot::render('billboard');
+    $build['billboard']['#weight'] = -1;
+  }
+
   // @todo No ads on premium or "Polizeimeldungen".
   $node = $build['#node'];
   $is_premium = FALSE;
@@ -326,4 +338,48 @@ function traffective_form_alter(&$form, $formstate, $form_id) {
     '#default_value' => '',
   ];
   // $form['#submit'][] = 'traffective_form_submit';
+}
+
+/**
+ * Implements hook_views_pre_build().
+ */
+function traffective_views_pre_build($view) {
+  if ($view->id() !== 'content'
+    || $view->current_display !== 'page'
+    || \Drupal::routeMatch()->getRouteObject()->getOption('_admin_route')
+    || $view->getCurrentPage() > 0
+    || !isset($view->argument['tid'])
+  ) {
+    return;
+  }
+
+  // Render a billboard on top of each content view  (e.g. categories).
+  //
+  // To preserve the global render count add via code as a region block will
+  // render after the main content.
+  $adslot = \Drupal\traffective\AdSlot::render('billboard');
+  $view->element['#prefix'] = \Drupal::service('renderer')->render($adslot);
+}
+
+/**
+ * Implements hook_block_access().
+ */
+function traffective_block_access(\Drupal\block\Entity\Block $block, $operation, \Drupal\Core\Session\AccountInterface $account) {
+  $attributes = \Drupal::request()->attributes;
+  if ($block->getPluginId() === 'traffective_adslot' && $node = $attributes->get('node')) {
+    $type = $block->getOriginalId();
+    $forbidden = FALSE;
+    $is_premium = FALSE;
+    if ($node->hasField('field_premium')) {
+      $is_premium = filter_var($node->get('field_premium')->value, FILTER_VALIDATE_BOOLEAN);
+    }
+    // Hide out of content ads for premium content and galleries.
+    if ((in_array($type, ['traffective_billboard', 'traffective_halfpage'], TRUE) && $is_premium) || $node->getType() === 'gallery') {
+      $forbidden = TRUE;
+    }
+    if ($forbidden) {
+      return AccessResult::forbidden()->addCacheableDependency($block);
+    }
+  }
+  return AccessResult::neutral()->addCacheableDependency($block);
 }
