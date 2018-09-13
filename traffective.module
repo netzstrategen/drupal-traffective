@@ -366,6 +366,12 @@ function traffective_views_pre_build($view) {
  */
 function traffective_block_access(\Drupal\block\Entity\Block $block, $operation, \Drupal\Core\Session\AccountInterface $account) {
   $attributes = \Drupal::request()->attributes;
+
+  // Hide Ligatus ads for premium users.
+  if (strpos($block->getPluginId(), 'traffective_ligatus') !== FALSE && traffective_user_is_premium()) {
+    return AccessResult::forbidden()->addCacheableDependency($block);
+  }
+
   if ($block->getPluginId() === 'traffective_adslot' && $node = $attributes->get('node')) {
     $type = $block->getOriginalId();
     $forbidden = FALSE;
@@ -382,4 +388,16 @@ function traffective_block_access(\Drupal\block\Entity\Block $block, $operation,
     }
   }
   return AccessResult::neutral()->addCacheableDependency($block);
+}
+
+/**
+ * Checks if the current user has premium paywall access.
+ *
+ * @return bool
+ */
+function traffective_user_is_premium(): bool {
+  $paywall_config = \Drupal::config('role_paywall.settings');
+  $paywall_roles = $paywall_config->get('roles');
+  $user_roles = \Drupal::currentUser()->getRoles();
+  return !empty(array_intersect(array_keys($paywall_roles), $user_roles));
 }
