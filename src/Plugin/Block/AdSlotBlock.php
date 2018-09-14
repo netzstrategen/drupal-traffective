@@ -23,9 +23,6 @@ class AdSlotBlock extends BlockBase implements BlockPluginInterface {
    */
   public function build(): array {
     $config = $this->getConfiguration();
-    if (traffective_user_is_premium()) {
-      return [];
-    }
     if (!$format = ($config['traffective_adslot'] ?? '')) {
       return [];
     }
