@@ -375,7 +375,7 @@ function traffective_block_access(\Drupal\block\Entity\Block $block, $operation,
     return AccessResult::forbidden()->addCacheableDependency($block);
   }
 
-  if ($block->getPluginId() === 'traffective_adslot') {
+  if ($block->getPluginId() === 'traffective_adslot' && $node = $attributes->get('node')) {
     $type = $block->getOriginalId();
     $forbidden = FALSE;
     // Hide out of content ads for premium content and galleries.
