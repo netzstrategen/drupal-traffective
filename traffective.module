@@ -109,14 +109,20 @@ function traffective_page_attachments(array &$attachments): void {
   $attachments['#attached']['library'][] = 'traffective/traffective';
 
   $script = "(function() {";
-  $script .= "var native_site = typeof oms_site !== 'undefined' ? oms_site : rmsi_site,";
-  $script .= "native_zone = typeof oms_zone !== 'undefined' ? oms_zone : rmsi_zone;";
-  $script .= "var s = document.createElement('script');";
-  $script .= "s.type = 'text/javascript';";
+  $script .= "var s   = document.createElement('script');";
+  $script .= "s.type  = 'text/javascript';";
   $script .= "s.async = true;";
-  $script .= "s.src = document.location.protocol + '//cdn-t.omsnative.de/nativendo.js?c=' +";
-  $script .= "native_zone + '&w=' + native_site;";
-  $script .= "var sc = document.getElementsByTagName('script')[0];";
+  $script .= "s.src   = '//d.omsnative.de/d/init?c=native&w=oms.stimme.de';";
+  $script .= "var sc  = document.getElementsByTagName('script')[0];";
+  $script .= "sc.parentNode.insertBefore(s, sc);";
+  $script .= "})();";
+
+  $script .= "(function() {";
+  $script .= "var s   = document.createElement('script');";
+  $script .= "s.type  = 'text/javascript';";
+  $script .= "s.async = true;";
+  $script .= "s.src   = '//d.omsnative.de/d/init?c=native&w=mew.oms.stimme.de';";
+  $script .= "var sc  = document.getElementsByTagName('script')[0];";
   $script .= "sc.parentNode.insertBefore(s, sc);";
   $script .= "})();";
 
