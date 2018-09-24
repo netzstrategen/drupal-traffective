@@ -21,7 +21,7 @@
     <div id="nativendo-oms-infeed-{{ render_count }}"></div>
   {% elseif format in ['skyscraper', 'halfpage'] %}
     {% if format in ['skyscraper'] %}
-      <div id="traffective-ad-WP{{ format|title }}" style="display: none;" class='{{ format|title }}'></div>
+      <div id="traffective-ad-WP{{ format|title }}" style="display: none;" class='WP{{ format|title }}'></div>
     {% endif %}
     <div id="traffective-ad-{{ format|title }}" style="display: none;" class="{{ format|title }}"></div>
   {% else %}
