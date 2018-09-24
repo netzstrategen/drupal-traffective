@@ -10,6 +10,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\TermInterface;
 use Drupal\traffective\AdSlot;
 
 /**
@@ -89,12 +90,31 @@ function traffective_preprocess_node(&$variables) {
     $is_economy = FALSE;
     foreach ($channels as $channel) {
       $term = Term::load($channel['target_id']);
-      if ($term && $term->getName() === 'Wirtschaft') {
-        $is_economy = TRUE;
-      }
+      $is_economy = traffective_search_term($term, 'Wirtschaft');
     }
     if ($is_economy && in_array($node->getType(), ['article', 'longread'], TRUE)) {
       $variables['#attached']['library'][] = 'traffective/teads';
+    }
+  }
+}
+
+/**
+ * Recusively searches if the given term object is a child of the given term name.
+ */
+function traffective_search_term(TermInterface $term, $name) {
+  $term_storage = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term');
+  if ($term->getName() === $name) {
+    return TRUE;
+  }
+  else {
+    $terms = $term_storage->loadParents($term->id());
+    foreach ($terms as $term) {
+      if ($term->label() === $name) {
+        return TRUE;
+      }
+      else {
+        return traffective_search_term($term, $name);
+      }
     }
   }
 }
