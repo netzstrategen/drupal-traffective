@@ -326,10 +326,11 @@ function traffective_form_alter(&$form, $formstate, $form_id) {
 }
 
 /**
- * Implements hook_views_pre_build().
+ * Implements hook_views_post_execute().
  */
-function traffective_views_pre_build($view) {
+function traffective_views_post_execute($view) {
   if ($view->id() !== 'content'
+    || !$view->total_rows
     || !in_array($view->current_display, ['page', 'section'], TRUE)
     || \Drupal::routeMatch()->getRouteObject()->getOption('_admin_route')
   ) {
