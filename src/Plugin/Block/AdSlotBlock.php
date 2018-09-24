@@ -44,6 +44,7 @@ class AdSlotBlock extends BlockBase implements BlockPluginInterface {
         'button' => $this->t('Button'),
         'contentbanner' => $this->t('Contentbanner'),
         'halfpage' => $this->t('Halfpage'),
+        'mobile_pos' => $this->t('Mobile Pos'),
         'rectangle' => $this->t('Rectangle'),
         'skyscraper' => $this->t('Skyscraper'),
         'superbanner' => $this->t('Superbanner'),
