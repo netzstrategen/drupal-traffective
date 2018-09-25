@@ -401,7 +401,8 @@ function traffective_block_access(\Drupal\block\Entity\Block $block, $operation,
     $forbidden = FALSE;
     // Hide out of content ads for premium content and galleries.
     if ((strpos($type, 'traffective') !== FALSE && traffective_node_is_premium())
-      || in_array($node->getType(), ['gallery', 'longread'], TRUE)
+      || $node->getType() === 'gallery'
+      || $node->getType() === 'longread' && $block->getRegion() !== 'sidebar'
     ) {
       $forbidden = TRUE;
     }
