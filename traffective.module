@@ -84,19 +84,20 @@ function traffective_library_info_build(): array {
  * Implements hook_preporcess_node().
  */
 function traffective_preprocess_node(&$variables) {
-  // Limit Teads Ads to the Economy category, articles, longreads and premium.
+  // Limit Teads Ads to the Economy category, articles, longreads and non premium.
   if (isset($variables['node'])
     && $variables['node']->hasField('field_channel')
+    && in_array($variables['node']->getType(), ['article', 'longread'], TRUE)
+    && !traffective_node_is_premium($variables['node'])
     && $variables['view_mode'] === 'full'
   ) {
-    $node = $variables['node'];
-    $channels = $node->get('field_channel')->getValue();
+    $channels = $variables['node']->get('field_channel')->getValue();
     $is_economy = FALSE;
     foreach ($channels as $channel) {
       $term = Term::load($channel['target_id']);
       $is_economy = traffective_search_term($term, 'Wirtschaft');
     }
-    if ($is_economy && in_array($node->getType(), ['article', 'longread'], TRUE)) {
+    if ($is_economy) {
       $variables['#attached']['library'][] = 'traffective/teads';
     }
   }
