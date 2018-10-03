@@ -117,6 +117,9 @@ function traffective_get_ad_unit(TermInterface $term) {
  * @todo Create settings page.
  */
 function traffective_page_attachments(array &$attachments): void {
+  if (\Drupal::service('router.admin_context')->isAdminRoute()) {
+    return;
+  }
   $script = "(function() {";
   $script .= "var s   = document.createElement('script');";
   $script .= "s.type  = 'text/javascript';";
