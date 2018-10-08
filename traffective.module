@@ -120,6 +120,14 @@ function traffective_page_attachments(array &$attachments): void {
   if (\Drupal::service('router.admin_context')->isAdminRoute()) {
     return;
   }
+  $attributes = \Drupal::request()->attributes;
+  // Do not include ad script on pages.
+  if ($node = $attributes->get('node')) {
+    if ($node->bundle() === 'page' && !\Drupal::service('path.matcher')->isFrontPage()) {
+      return;
+    }
+  }
+
   $script = "(function() {";
   $script .= "var s   = document.createElement('script');";
   $script .= "s.type  = 'text/javascript';";
@@ -148,7 +156,6 @@ function traffective_page_attachments(array &$attachments): void {
     'traffective_ad_loading_script',
   ];
 
-  $attributes = \Drupal::request()->attributes;
   $ad_unit = 'other';
   $is_premium = FALSE;
   if ($taxonomy_term = $attributes->get('taxonomy_term')) {
@@ -159,7 +166,7 @@ function traffective_page_attachments(array &$attachments): void {
     }
   }
 
-  if ($node = $attributes->get('node')) {
+  if ($node) {
     $pagetype = 'node';
     $slug = $node->toUrl()->toString();
     if ($node->hasField('field_premium')) {
