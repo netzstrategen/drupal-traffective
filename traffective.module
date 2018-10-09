@@ -390,6 +390,9 @@ function traffective_install() {
   $entity_manager = \Drupal::entityManager();
   $bundles = $entity_manager->getBundleInfo($entity_type);
   foreach ($bundles as $bundle_id => $bundle) {
+    if (!in_array($bundle_id, ['channel', 'regions', 'tags'], TRUE)) {
+      continue;
+    }
     if (!\Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $field_name)) {
       $ad_units = [
         'automotive',
