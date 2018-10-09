@@ -102,6 +102,9 @@ function traffective_get_ad_unit(TermInterface $term) {
   $term_storage = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term');
   if ($term->hasField('ad_unit') && !$ad_unit = $term->get('ad_unit')->value) {
     $terms = $term_storage->loadParents($term->id());
+    if ($term->bundle() === 'regions' && !$terms) {
+      $terms = taxonomy_term_load_multiple_by_name('Region', 'channel');
+    }
     foreach ($terms as $term) {
       if ($term->hasField('ad_unit') && !$ad_unit = $term->get('ad_unit')->value) {
         return traffective_get_ad_unit($term);
@@ -156,8 +159,10 @@ function traffective_page_attachments(array &$attachments): void {
     'traffective_ad_loading_script',
   ];
 
-  $ad_unit = 'other';
   $is_premium = FALSE;
+  $ad_unit = 'other';
+  $pagetype = 'other';
+  $slug = \Drupal::request()->getPathInfo();
   if ($taxonomy_term = $attributes->get('taxonomy_term')) {
     $pagetype = 'taxonomy_term';
     $slug = $taxonomy_term->toUrl()->toString();
