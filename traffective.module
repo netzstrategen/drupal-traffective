@@ -9,6 +9,8 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityManager;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\TermInterface;
 use Drupal\traffective\AdSlot;
@@ -45,39 +47,6 @@ function traffective_preprocess_field(&$variables): void {
       ]]);
     }
   }
-}
-
-/**
- * Implements hook_library_info_build().
- *
- * @todo Create settings page.
- * @todo Determine zone names.
- */
-function traffective_library_info_build(): array {
-  $libraries = [];
-  $libraries['traffective'] = [
-    'version' => '1.x',
-    'header' => TRUE,
-    'js' => [
-      'https://cdntrf.com/trf_stimme.js' => [
-        'type' => 'external',
-        'minified' => TRUE,
-        'attributes' => [
-          'id' => 'trfAdSetup',
-          'async' => TRUE,
-          'data-traffectiveConf' => json_encode([
-            'targeting' => [
-              'key' => 'zone',
-              'values' => NULL,
-              'value' => 'test',
-            ],
-            'dfpAdUrl' => '/5688434/stimme.de/homepage',
-          ]),
-        ],
-      ],
-    ],
-  ];
-  return $libraries;
 }
 
 /**
@@ -125,10 +94,42 @@ function traffective_search_term(TermInterface $term, $name) {
 }
 
 /**
+ * Returns the ad unit for a given term.
+ *
+ * If no ad unit is set for the given term, the closest parent ad unit is returned.
+ */
+function traffective_get_ad_unit(TermInterface $term) {
+  $term_storage = \Drupal::service('entity_type.manager')->getStorage('taxonomy_term');
+  if ($term->hasField('ad_unit') && !$ad_unit = $term->get('ad_unit')->value) {
+    $terms = $term_storage->loadParents($term->id());
+    if ($term->bundle() === 'regions' && !$terms) {
+      $terms = taxonomy_term_load_multiple_by_name('Region', 'channel');
+    }
+    foreach ($terms as $term) {
+      if ($term->hasField('ad_unit') && !$ad_unit = $term->get('ad_unit')->value) {
+        return traffective_get_ad_unit($term);
+      }
+    }
+  }
+  return $ad_unit;
+}
+
+/**
  * Implements hook_page_attachments().
+ *
+ * @todo Create settings page.
  */
 function traffective_page_attachments(array &$attachments): void {
-  $attachments['#attached']['library'][] = 'traffective/traffective';
+  if (\Drupal::service('router.admin_context')->isAdminRoute()) {
+    return;
+  }
+  $attributes = \Drupal::request()->attributes;
+  // Do not include ad script on pages.
+  if ($node = $attributes->get('node')) {
+    if ($node->bundle() === 'page' && !\Drupal::service('path.matcher')->isFrontPage()) {
+      return;
+    }
+  }
 
   $script = "(function() {";
   $script .= "var s   = document.createElement('script');";
@@ -156,6 +157,77 @@ function traffective_page_attachments(array &$attachments): void {
       '#weight' => 9999,
     ],
     'traffective_ad_loading_script',
+  ];
+
+  $is_premium = FALSE;
+  $ad_unit = 'other';
+  $pagetype = 'other';
+  $slug = \Drupal::request()->getPathInfo();
+  if ($taxonomy_term = $attributes->get('taxonomy_term')) {
+    $pagetype = 'taxonomy_term';
+    $slug = $taxonomy_term->toUrl()->toString();
+    if ($unit = traffective_get_ad_unit($taxonomy_term)) {
+      $ad_unit = $unit;
+    }
+  }
+
+  if ($node) {
+    $pagetype = 'node';
+    $slug = $node->toUrl()->toString();
+    if ($node->hasField('field_premium')) {
+      $is_premium = filter_var($node->get('field_premium')->value, FILTER_VALIDATE_BOOLEAN);
+    }
+    if ($node->hasField('field_channel') && $channel = $node->get('field_channel')->getValue()) {
+      $channel_term = $node->get('field_channel')->first()->get('entity')->getTarget()->getValue();
+      if ($unit = traffective_get_ad_unit($channel_term)) {
+        $ad_unit = $unit;
+      }
+    }
+  }
+
+  if (\Drupal::service('path.matcher')->isFrontPage()) {
+    $ad_unit = 'homepage';
+    $slug = '/';
+  }
+
+  $attachments['#attached']['html_head'][] = [
+    [
+      '#type' => 'html_tag',
+      '#tag' => 'script',
+      '#external' => TRUE,
+      '#minified' => TRUE,
+      '#attributes' => [
+        'src' => 'https://cdntrf.com/trf_stimme.js',
+        'id' => 'trfAdSetup',
+        'async' => TRUE,
+        'data-traffectiveConf' => json_encode([
+          'targeting' => [
+            [
+              'key' => 'zone',
+              'values' => NULL,
+              'value' => $ad_unit,
+            ],
+            [
+              'key' => 'pagetype',
+              'values' => NULL,
+              'value' => $pagetype,
+            ],
+            [
+              'key' => 'is_premium',
+              'values' => NULL,
+              'value' => $is_premium,
+            ],
+            [
+              'key' => 'entity_slug',
+              'values' => NULL,
+              'value' => $slug,
+            ],
+          ],
+          'dfpAdUrl' => '/5688434/stimme.de/' . $ad_unit,
+        ]),
+      ],
+    ],
+    'traffective',
   ];
 }
 
@@ -315,45 +387,94 @@ function traffective_skip_node($node) {
 }
 
 /**
- * Implements hook_form_alter().
+ * Implements hook_install().
  */
-function traffective_form_alter(&$form, $formstate, $form_id) {
-  return;
-  $form['traffective']['ad_unit'] = [
-    '#type' => 'select',
-    '#title' => t('Ad Unit'),
-    '#description' => '',
-    '#options' => [
-      'automotive',
-      'business',
-      'cinema',
-      'computer',
-      'entertainment',
-      'event',
-      'family',
-      'football',
-      'health',
-      'jobs',
-      'homepage',
-      'jobs',
-      'localnews',
-      'localnews_no_oms',
-      'nationalnews',
-      'politik',
-      'property',
-      'science',
-      'service',
-      'sports',
-      'stellenmarkt',
-      'test',
-      'test_lokal',
-      'trauer',
-      'travel',
-      'weather',
-    ],
-    '#default_value' => '',
-  ];
-  // $form['#submit'][] = 'traffective_form_submit';
+function traffective_install() {
+  $entity_type = 'taxonomy_term';
+  $field_name = 'ad_unit';
+  $entity_manager = \Drupal::entityManager();
+  $bundles = $entity_manager->getBundleInfo($entity_type);
+  foreach ($bundles as $bundle_id => $bundle) {
+    if (!in_array($bundle_id, ['channel', 'regions', 'tags'], TRUE)) {
+      continue;
+    }
+    if (!\Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $field_name)) {
+      $ad_units = [
+        'automotive',
+        'business',
+        'cinema',
+        'computer',
+        'entertainment',
+        'event',
+        'family',
+        'football',
+        'health',
+        'jobs',
+        'homepage',
+        'jobs',
+        'localnews',
+        'localnews_no_oms',
+        'nationalnews',
+        'politik',
+        'property',
+        'science',
+        'service',
+        'sports',
+        'stellenmarkt',
+        'test',
+        'test_lokal',
+        'trauer',
+        'travel',
+        'weather',
+      ];
+      $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => $entity_type,
+        'type' => 'list_string',
+        'cardinality' => 1,
+        'settings' => [
+          'allowed_values' => array_combine($ad_units, $ad_units),
+        ],
+      ]);
+      $field_storage->save();
+    }
+
+    if (!\Drupal\field\Entity\FieldConfig::loadByName($entity_type, $bundle_id, $field_name)) {
+      $instance = \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => $field_name,
+        'label' => t('Ad Unit'),
+        'entity_type' => $entity_type,
+        'field_storage' => $field_storage,
+        'bundle' => $bundle_id,
+      ]);
+      $instance->save();
+
+      // Setup the display mode in the create/edit form.
+      entity_get_form_display($entity_type, $bundle_id, 'default')
+        ->setComponent($field_name, [
+          'weight' => 20,
+        ])
+        ->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function traffective_uninstall() {
+  $entity_type = 'taxonomy_term';
+  $field_name = 'ad_unit';
+  $entity_manager = \Drupal::entityManager();
+  $bundles = $entity_manager->getBundleInfo($entity_type);
+  foreach ($bundles as $bundle_id => $bundle) {
+    if ($config = \Drupal\field\Entity\FieldConfig::loadByName($entity_type, $bundle_id, $field_name)) {
+      $config->delete();
+    }
+    if ($storage = \Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $field_name)) {
+      $storage->delete();
+    }
+  }
 }
 
 /**
