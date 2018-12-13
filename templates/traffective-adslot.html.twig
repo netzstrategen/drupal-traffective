@@ -21,7 +21,7 @@
     <div id="{{ format }}-{{ render_count }}"></div>
   {% elseif 'halfpage' in format %}
     <div id="traffective-ad-{{ format|title }}Ad" style="display: none;" class="{{ format|title }}Ad"></div>
-  {% elseif 'wpskyscraper' in format|lower %}
+  {% elseif format|lower in ['skyscraper', 'wpskyscraper'] %}
     <div id="traffective-ad-{{ format }}" style="display: none;" class='{{ format }}'></div>
   {% else %}
     <div id="traffective-ad-{{ format|title }}{% if format != 'mobile_pos' %}_{% endif %}{{ render_count }}" style="display: none;" class="{{ format|title }}{% if format != 'mobile_pos' %}_{% endif %}{{ render_count }}"></div>

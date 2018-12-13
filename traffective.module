@@ -493,7 +493,7 @@ function traffective_views_post_execute($view) {
   // alternate with the native ads.
   $view_render = &drupal_static('views_render_count', 0);
   if ($view_render === 0) {
-    $view->element['content']['skyscraper'] = AdSlot::render('skyscraper');
+    $view->element['content']['skyscraper'] = AdSlot::render('Skyscraper');
     $view->element['content']['skyscraper']['#weight'] = -1;
   }
   if ($view_render % 2 === 0) {
