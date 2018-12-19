@@ -13,17 +13,18 @@
 {% set classes = [
   'traffective-adslot',
   ' ad',
-  ' ad--' ~ format,
+  ' ad--' ~ format|lower,
 ] %}
 <div class="{{ classes|join }}">
   {# Extract "nativendo" ads into own Drupal module #}
   {% if 'native' in format %}
     <div id="{{ format }}-{{ render_count }}"></div>
-  {% elseif format in ['skyscraper', 'halfpage'] %}
-    {% if format in ['skyscraper'] %}
-      <div id="traffective-ad-WP{{ format|title }}" style="display: none;" class='WP{{ format|title }}'></div>
-    {% endif %}
-    <div id="traffective-ad-{{ format|title }}{% if format in ['halfpage'] %}Ad{% endif %}" style="display: none;" class="{{ format|title }}{% if format in ['halfpage'] %}Ad{% endif %}"></div>
+  {% elseif 'halfpage' in format %}
+    <div id="traffective-ad-{{ format|title }}Ad" style="display: none;" class="{{ format|title }}Ad"></div>
+  {% elseif 'wpskyscraper' in format|lower %}
+    <div id="traffective-ad-{{ format }}" style="display: none;" class='{{ format }}'></div>
+  {% elseif 'skyscraper' in format|lower %}
+    <div id="traffective-ad-{{ format|title }}" style="display: none;" class='{{ format|title }}'></div>
   {% else %}
     <div id="traffective-ad-{{ format|title }}{% if format != 'mobile_pos' %}_{% endif %}{{ render_count }}" style="display: none;" class="{{ format|title }}{% if format != 'mobile_pos' %}_{% endif %}{{ render_count }}"></div>
   {% endif %}
